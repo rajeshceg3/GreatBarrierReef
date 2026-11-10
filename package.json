@@ -4,14 +4,16 @@
   "description": "An original, procedural 360-degree underwater world. Four connected imagined habitats: a sunlit coral garden, turtle passage, the outer edge, and a spawning night.",
   "main": "reef.js",
   "scripts": {
-    "check": "node --check reef.js && node --check scripts/verify.mjs",
-    "verify": "node scripts/verify.mjs"
+    "check": "node --check reef.js && node --check scripts/verify.mjs && node --check scripts/scene-gate.mjs",
+    "verify": "node scripts/verify.mjs",
+    "test": "node scripts/scene-gate.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "playwright": "^1.56.1"
+    "playwright": "^1.56.1",
+    "puppeteer-core": "^24.43.1"
   },
   "type": "module"
 }
