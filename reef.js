@@ -64,3 +64,24 @@ const look=v(0,0,0),bg=new T.Color();function animate(now){requestAnimationFrame
 for(const f of fish){const a=f.a+elapsed*f.speed;f.g.position.set(Math.sin(a)*f.r,f.y+Math.sin(elapsed*.8+f.phase)*.22,Math.cos(a)*f.r-7);f.g.rotation.y=a+Math.PI/2;f.g.rotation.z=Math.sin(elapsed*3+f.phase)*.035;}parrot.position.set(4+Math.sin(elapsed*.15)*2,-.2+Math.sin(elapsed*.5)*.3,8+Math.cos(elapsed*.15));parrot.rotation.y=-elapsed*.15;turtle.position.set(Math.sin(elapsed*.08)*3,.6+Math.sin(elapsed*.3)*.22,-25+Math.cos(elapsed*.08)*2);turtle.rotation.y=.6-elapsed*.08;flippers.forEach((f,i)=>f.rotation.x=Math.sin(elapsed*1.3+i%2*Math.PI)*.3);ray.position.set(32+Math.sin(elapsed*.12)*3,-1.5+Math.sin(elapsed*.25)*.3,-24+Math.cos(elapsed*.12)*3);ray.rotation.x=Math.sin(elapsed*.8)*.08;ray.rotation.y=elapsed*.12;spawn.material.opacity=night*.85;spawn.position.y=(elapsed*.23)%7-3;spawn.rotation.y=elapsed*.008;
 canvas.dataset.yaw=yaw;canvas.dataset.pitch=pitch;$('#compass').textContent=['N','E','S','W'][Math.floor((((yaw*180/Math.PI)%360+360+45)%360)/90)]+' · '+String(Math.round((yaw*180/Math.PI%360+360)%360)).padStart(3,'0')+'°';renderer.render(scene,camera);if(++frames===2){$('#status').remove();}if(frames===500)$('#orientation').classList.remove('show');}
 changeChapter(0);requestAnimationFrame(animate);
+
+// Place-true chrome: controls greet, retire, and visit when called.
+{
+  const body=document.body,ui=[$('header'),$('#dock'),$('#compass')],pin=$('#pin-chrome'),hint=$('#chrome-hint'),KEY='reef-chrome-pin',GREET=2600;
+  let pinned=false,timer=0,zone=false;
+  try{pinned=localStorage.getItem(KEY)==='1';}catch(e){}
+  const held=()=>zone||ui.some(el=>el.matches(':focus-within')||el.matches(':hover'));
+  const blurIn=()=>{const a=document.activeElement;if(a&&ui.some(el=>el.contains(a)))a.blur();};
+  const show=()=>{clearTimeout(timer);body.classList.add('chrome-on');if(!pinned)timer=setTimeout(retire,GREET);};
+  const retire=()=>{if(pinned)return;if(held()){timer=setTimeout(retire,GREET);return;}body.classList.remove('chrome-on');blurIn();};
+  const setPin=v=>{pinned=v;pin.setAttribute('aria-pressed',String(v));try{localStorage.setItem(KEY,v?'1':'0');}catch(e){}if(v){clearTimeout(timer);body.classList.add('chrome-on');}else show();};
+  pin.addEventListener('click',()=>setPin(!pinned));
+  hint.addEventListener('click',()=>{show();pin.focus({preventScroll:true});});
+  addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;zone=e.clientY<96||e.clientY>innerHeight-150;if(zone)show();});
+  document.addEventListener('pointerleave',()=>{zone=false;});
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!pinned&&!$('#notes').open){zone=false;clearTimeout(timer);body.classList.remove('chrome-on');blurIn();}else if(e.key==='Tab')show();});
+  ui.forEach(el=>el.addEventListener('pointerdown',()=>{if(!pinned)show();}));
+  pin.setAttribute('aria-pressed',String(pinned));
+  body.classList.add('chrome-on');
+  if(!pinned)timer=setTimeout(retire,GREET+800);
+}
