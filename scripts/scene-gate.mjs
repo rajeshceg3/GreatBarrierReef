@@ -9,7 +9,7 @@ try{
  if(!process.env.BASE_URL){server=spawn('python3',['-m','http.server','8793'],{stdio:'ignore'});for(let i=0;i<30;i++){try{if((await fetch(url)).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}}
  b=await puppeteer.launch({executablePath:'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--enable-unsafe-swiftshader','--hide-scrollbars']});
  for(const width of JSON.parse(process.env.WIDTHS||'[320,390,1440]'))for(const motion of JSON.parse(process.env.MOTIONS||'["reduce","no-preference"]')){
- const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));await p.setViewport({width,height:844});await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:motion}]);await p.goto(url);await p.waitForFunction(()=>!document.querySelector('#status'));await p.evaluate(()=>document.fonts.ready);if(motion!=='reduce')await p.click('#pause');
+ const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));await p.evaluateOnNewDocument(()=>localStorage.setItem('reef-chrome-pin','1'));await p.setViewport({width,height:844});await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:motion}]);await p.goto(url);await p.waitForFunction(()=>!document.querySelector('#status'));await p.evaluate(()=>document.fonts.ready);if(motion!=='reduce')await p.click('#pause');
  for(const ch of JSON.parse(process.env.CHAPTERS||'[0,1,2,3]')){
  await p.click(`nav [data-chapter="${ch}"]`);await new Promise(r=>setTimeout(r,motion==='reduce'?200:2000));
  await p.mouse.move(width*.8,240);await p.mouse.down();await p.mouse.move(width*.2,310,{steps:2});await p.mouse.up();await p.click('#reset');await new Promise(r=>setTimeout(r,600));
@@ -22,5 +22,21 @@ try{
  await p.focus('nav [aria-current=true]');await p.keyboard.press('ArrowRight');assert.equal(await p.$eval('body',e=>+e.dataset.chapter),2);
  await p.click('#about');assert.equal(await p.$eval('dialog',e=>e.open),true);await p.keyboard.press('Escape');assert.equal(await p.$eval('dialog',e=>e.open),false);
  assert.deepEqual(errors,[]);await p.close();console.log('Passed',width,motion);fs.writeFileSync(out+'/results.json',JSON.stringify(results,null,2));
+ }
+
+ for(const width of JSON.parse(process.env.UNPINNED_WIDTHS||'[390,1440]')){
+ const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));await p.setViewport({width,height:844});
+ await p.evaluateOnNewDocument(()=>{localStorage.removeItem('reef-chrome-pin');addEventListener('DOMContentLoaded',()=>{window.__seenOn=document.body.classList.contains('chrome-on');new MutationObserver(()=>{if(document.body.classList.contains('chrome-on'))window.__seenOn=true;}).observe(document.body,{attributes:true});});});
+ await p.goto(url);
+ const on=()=>p.$eval('body',x=>x.classList.contains('chrome-on'));const vis=s=>p.$eval(s,e=>getComputedStyle(e).visibility);
+ assert.equal(await p.evaluate(()=>window.__seenOn),true,'greeting shows chrome');
+ await p.waitForFunction(()=>!document.body.classList.contains('chrome-on'),{timeout:9000});await new Promise(r=>setTimeout(r,400));
+ assert.equal(await vis('#dock'),'hidden');assert.equal(await vis('#chrome-hint'),'visible');assert.equal(await vis('#title'),'visible');
+ await p.screenshot({path:`${out}/quiet-${width}.png`});
+ await p.click('#chrome-hint');assert.equal(await on(),true);assert.equal(await vis('#dock'),'visible');await p.screenshot({path:`${out}/woken-${width}.png`});
+ await p.click('#pin-chrome');await new Promise(r=>setTimeout(r,3500));assert.equal(await on(),true,'pinned holds');assert.equal(await p.evaluate(()=>localStorage.getItem('reef-chrome-pin')),'1');
+ await p.click('#pin-chrome');await p.mouse.move(width/2,400);await p.keyboard.press('Escape');await new Promise(r=>setTimeout(r,300));assert.equal(await on(),false,'escape retires');
+ if(width>760){await p.mouse.move(width/2,830);assert.equal(await on(),true,'bottom edge wakes');await p.mouse.move(width/2,400);await p.waitForFunction(()=>!document.body.classList.contains('chrome-on'),{timeout:9000});}
+ assert.deepEqual(errors,[]);await p.close();console.log('Unpinned passed',width);
  }
 }finally{await b?.close();server?.kill();}
