@@ -25,9 +25,30 @@ const surface=new T.Mesh(new T.PlaneGeometry(220,220),new T.ShaderMaterial({tran
 const rays=new T.Group();scene.add(rays);
 function mesh(geo,material,pos,scale,parent){const o=new T.Mesh(geo,material);o.position.copy(pos);o.scale.copy(scale);parent.add(o);return o;}
 const eyeMat=mat('#062d37'),fishMats=['#dfc350','#73c8bf','#ef9e70','#91b9da'].map(c=>mat(c));const fish=[];const animals=[];
-function makeFish(type=0){const g=new T.Group(),m=fishMats[type];mesh(new T.SphereGeometry(1,12,8),m,v(0,0,0),v(.63,.34,.16),g);const tail=mesh(new T.ConeGeometry(.32,.44,3),m,v(-.71,0,0),v(1,1,.4),g);tail.rotation.z=-Math.PI/2;const fin=mesh(new T.ConeGeometry(.25,.6,3),m,v(-.08,.28,0),v(1,1,.3),g);fin.rotation.z=.6;for(const z of[-.145,.145])mesh(new T.SphereGeometry(.042,6,4),eyeMat,v(.36,.08,z),v(1,1,1),g);if(type===0)for(let j=0;j<3;j++)mesh(new T.SphereGeometry(1,8,6),mat('#284f5c'),v(-.22+j*.2,0,0),v(.035,.3,.169),g);g.userData.kind=type===1?'parrot':'school';return g;}
+function makeFish(type=0){const g=new T.Group(),m=fishMats[type];
+// laterally-compressed body with a proper head slope
+mesh(new T.SphereGeometry(1,16,10),m,v(0,0,0),v(.62,.34,.15),g);
+mesh(new T.SphereGeometry(1,12,8),m,v(.42,-.02,0),v(.3,.26,.13),g);
+// forked tail: two swept lobes
+for(const y of[-1,1]){const lobe=mesh(new T.ConeGeometry(.16,.5,6),m,v(-.78,y*.14,0),v(1,1,.35),g);lobe.rotation.z=-Math.PI/2+y*.5;}
+// dorsal + anal + pectoral fins
+const dorsal=mesh(new T.ConeGeometry(.14,.5,5),m,v(-.05,.34,0),v(1,1,.3),g);dorsal.rotation.z=.45;
+const anal=mesh(new T.ConeGeometry(.1,.3,5),m,v(-.12,-.3,0),v(1,1,.3),g);anal.rotation.z=Math.PI-.4;
+for(const z of[-1,1]){const pf=mesh(new T.SphereGeometry(.12,8,5),m,v(.18,-.08,z*.14),v(1.6,.5,.45),g);pf.rotation.y=z*.7;}
+// eye: pale ring, dark pupil
+for(const z of[-1,1]){mesh(new T.SphereGeometry(.055,8,6),mat('#e8f4f2'),v(.5,.07,z*.12),v(1,1,.6),g);mesh(new T.SphereGeometry(.032,8,6),eyeMat,v(.52,.07,z*.135),v(1,1,.5),g);}
+// gill plate line
+for(const z of[-1,1])mesh(new T.SphereGeometry(1,8,6),mat('#3d6a70'),v(.26,0,z*.145),v(.02,.22,.4),g);
+if(type===0){for(let j=0;j<3;j++)mesh(new T.SphereGeometry(1,8,6),mat('#284f5c'),v(-.22+j*.2,0,0),v(.035,.3,.169),g);}
+g.userData.kind=type===1?'parrot':'school';return g;}
 for(let i=0;i<52;i++){const f=makeFish(i%4),a=range(0,6.28),r=range(7,32);f.scale.setScalar(range(.35,.8));scene.add(f);fish.push({g:f,a,r,y:range(-1.8,5.8),speed:range(.05,.12),phase:range(0,6.28)});animals.push(f);}
-const parrot=makeFish(1);parrot.scale.setScalar(1.4);parrot.position.set(5,0,8);mesh(new T.SphereGeometry(1,10,6),mat('#9ae3c6'),v(.44,.02,0),v(.25,.25,.17),parrot);mesh(new T.SphereGeometry(1,8,6),mat('#efe3b3'),v(.66,-.015,0),v(.11,.14,.13),parrot);for(const z of[-.18,.18]){const fin=mesh(new T.SphereGeometry(1,8,6),mat('#469bb0'),v(-.04,-.12,z),v(.24,.055,.22),parrot);fin.rotation.y=z>0?-.45:.45;}scene.add(parrot);animals.push(parrot);
+fishMats[1]=mat('#4fb8a8');
+const parrot=makeFish(1);parrot.scale.setScalar(1.4);parrot.position.set(5,0,8);
+// pale beak plates, pink-tinged tail + fin edges (bicolor parrotfish)
+mesh(new T.SphereGeometry(1,10,6),mat('#d9efe6'),v(.62,-.04,0),v(.14,.13,.1),parrot);
+const tailBand=mesh(new T.CylinderGeometry(.16,.2,.06,10),mat('#e88aa6'),v(-.62,0,0),v(1,2.2,.5),parrot);tailBand.rotation.z=Math.PI/2;
+for(const z of[-.18,.18]){const fin=mesh(new T.SphereGeometry(1,8,6),mat('#e88aa6'),v(-.04,-.12,z),v(.24,.055,.22),parrot);fin.rotation.y=z>0?-.45:.45;}
+scene.add(parrot);animals.push(parrot);
 const turtle=new T.Group(),shell=mat('#71835c'),skin=mat('#a9b38a');mesh(new T.SphereGeometry(1,20,12),shell,v(0,0,0),v(1.1,.46,.8),turtle);mesh(new T.SphereGeometry(1,12,8),skin,v(1.15,.02,0),v(.4,.25,.24),turtle);for(let i=0;i<7;i++){const a=i/7*6.28;mesh(new T.IcosahedronGeometry(.23,0),mat('#86906a'),v(Math.cos(a)*.5,.41,Math.sin(a)*.35),v(1,.25,1),turtle);}const flippers=[];for(const x of[-.65,.5])for(const z of[-1,1]){const f=mesh(new T.SphereGeometry(1,10,6),skin,v(x,-.1,z*.83),v(.26,.10,x>0?.8:.45),turtle);f.rotation.y=z*.5;flippers.push(f);}for(const z of[-.19,.19])mesh(new T.SphereGeometry(.045,6,4),eyeMat,v(1.35,.12,z),v(1,1,1),turtle);turtle.position.set(0,1,-24);turtle.userData.kind='turtle';scene.add(turtle);animals.push(turtle);
 const ray=new T.Group(),rayMat=mat('#729da8');rayMat.side=T.DoubleSide;const rayShape=new T.Shape();rayShape.moveTo(1.25,0);rayShape.bezierCurveTo(.7,-.35,.15,-1.5,-.6,-2);rayShape.bezierCurveTo(-.35,-1.05,-.8,-.35,-1.05,0);rayShape.bezierCurveTo(-.8,.35,-.35,1.05,-.6,2);rayShape.bezierCurveTo(.15,1.5,.7,.35,1.25,0);const rg=new T.ShapeGeometry(rayShape,14);rg.rotateX(Math.PI/2);mesh(rg,rayMat,v(0,0,0),v(1,1,1),ray);mesh(new T.SphereGeometry(1,12,6),rayMat,v(.1,.06,0),v(.9,.16,.4),ray);const rt=mesh(new T.ConeGeometry(.045,3,5),rayMat,v(-2,0,0),v(1,1,1),ray);rt.rotation.z=Math.PI/2;for(const z of[-.16,.16])mesh(new T.SphereGeometry(.04,6,4),eyeMat,v(.65,.18,z),v(1,1,1),ray);ray.position.set(32,-1.5,-24);ray.userData.kind='ray';scene.add(ray);animals.push(ray);
 const spawnStamp=document.createElement('canvas');spawnStamp.width=spawnStamp.height=32;const sc=spawnStamp.getContext('2d'),sg=sc.createRadialGradient(16,16,2,16,16,15);sg.addColorStop(0,'#fff');sg.addColorStop(.55,'#fffb');sg.addColorStop(1,'#fff0');sc.fillStyle=sg;sc.fillRect(0,0,32,32);const spawnTexture=new T.CanvasTexture(spawnStamp);
